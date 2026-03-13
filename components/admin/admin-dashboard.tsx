@@ -37,8 +37,10 @@ export function AdminDashboard() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [role, setRole] = useState<string>("USER");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(() => {
+    setLoading(true);
     const currentRole = getDemoRole();
     setRole(currentRole);
 
@@ -56,7 +58,8 @@ export function AdminDashboard() {
         })
         .catch(() => {
           setStats(null);
-        });
+        })
+        .finally(() => setLoading(false));
     }
 
     // Fetch transactions based on role
@@ -75,7 +78,8 @@ export function AdminDashboard() {
       })
       .catch(() => {
         setTransactions([]);
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -123,6 +127,17 @@ export function AdminDashboard() {
   const filteredTransactions = statusFilter === "all" 
     ? transactions 
     : transactions.filter(t => t.status === statusFilter);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+          <p className="text-sm text-slate-500">กำลังโหลด...</p>
+        </div>
+      </div>
+    );
+  }
 
   // USER Dashboard View
   if (role === "USER") {
