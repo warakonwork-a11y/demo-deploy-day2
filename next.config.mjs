@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  outputFileTracingRoot: "c:/Users/User/Documents/demo-deploy-day2"
-};
+const nextConfig = {};
 
 export default nextConfig;
 
