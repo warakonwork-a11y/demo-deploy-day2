@@ -1,0 +1,35 @@
+rules:
+  naming_conventions:
+    files: "kebab-case (e.g., equipment-list.tsx, borrow-action.ts)"
+    components: "PascalCase (e.g., InventoryTable.tsx)"
+    functions_variables: "camelCase (e.g., getAvailableStock)"
+    database_models: "PascalCase in Prisma schema, camelCase in code"
+    constants: "UPPER_SNAKE_CASE (e.g., MAX_BORROW_DAYS)"
+
+  error_handling_and_logging:
+    server_actions: "Use try/catch blocks in Server Actions and return a standardized { success: boolean, error?: string } object."
+    client_side: "Use Shadcn/UI Toast for user-facing errors."
+    db_transactions: "Every stock-related update MUST use Prisma.$transaction to prevent race conditions."
+    logging: "Log all status changes (PENDING -> APPROVED) to the AuditLog table as per business requirements."
+
+  component_structure_and_imports:
+    react_server_components: "Default to Server Components. Use 'use client' only when hooks (useState, useEffect) or interactivity are required."
+    imports_order: "1. React/Next.js, 2. External Libs (Prisma, Zod, Shadcn), 3. Internal Components, 4. Hooks/Utils, 5. Types"
+    absolute_paths: "Always use '@/' alias for imports (e.g., '@/components/ui/button')."
+    validation: "Centralize all schemas in a '@/lib/validations' folder using Zod."
+
+  testing_requirements:
+    unit_tests: "Use Vitest for business logic validation (e.g., date range overlap logic)."
+    integration_tests: "Verify transaction flows (Borrow -> Approve -> Stock Decrease) to ensure data integrity."
+    naming: "*.test.ts or *.spec.tsx"
+
+  security_and_best_practices:
+    rbac: "Enforce Role-Based Access Control at the top of Server Actions and in middleware.ts for /admin routes."
+    data_integrity: "Check 'available_stock > 0' inside the database transaction, never trust client-side values."
+    typescript: "Strict mode enabled. NO 'any' type allowed. Use generated Prisma types for database records."
+    performance: "Implement pagination for inventory lists. Use database indexes on 'sku', 'status', and 'user_id'."
+    forms: "Use React Hook Form with Zod resolver for all data entry."
+
+  domain_specific_rules:
+    borrowing_logic: "Prevent overlapping date ranges by querying (start_date, end_date) intersections before creating a Transaction."
+    stock_management: "Decrement 'available_stock' ONLY when status changes to 'APPROVED' or 'BORROWING'."

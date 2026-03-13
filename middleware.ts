@@ -1,0 +1,19 @@
+import { NextResponse, type NextRequest } from "next/server";
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/admin")) {
+    const role = request.headers.get("x-demo-role");
+    if (role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/admin/:path*"]
+};
+
