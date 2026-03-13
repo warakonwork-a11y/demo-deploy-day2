@@ -207,7 +207,7 @@ export async function getDashboardStats() {
         },
         orderBy: {
           _count: {
-            _all: "desc"
+            equipmentId: "desc"
           }
         },
         take: 5

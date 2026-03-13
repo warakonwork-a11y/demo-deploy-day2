@@ -33,7 +33,9 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   };
 }
 
-export function assertAdmin(user: SessionUser | null): asserts user is SessionUser & { role: UserRole.ADMIN } {
+export function assertAdmin(
+  user: SessionUser | null
+): asserts user is SessionUser & { role: "ADMIN" } {
   if (!user || user.role !== UserRole.ADMIN) {
     throw new Prisma.PrismaClientKnownRequestError("FORBIDDEN", {
       code: "P0001",

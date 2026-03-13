@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertAdmin, getCurrentUser } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const user = await getCurrentUser();
   assertAdmin(user);
@@ -15,7 +17,7 @@ export async function GET() {
       equipment: true,
       user: true
     }
-  } as never);
+  });
 
   return NextResponse.json(
     transactions.map((t) => ({
