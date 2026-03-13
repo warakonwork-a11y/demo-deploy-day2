@@ -156,6 +156,79 @@ async function main() {
 
   console.log("Created users:", { demoUser: demoUser.email, adminUser: adminUser.email });
 
+  // Get equipment for demo transactions
+  const macbook = await prisma.equipment.findUnique({ where: { sku: "IT-NB-001" } });
+  const projector = await prisma.equipment.findUnique({ where: { sku: "IT-PROJ-001" } });
+  const ipad = await prisma.equipment.findUnique({ where: { sku: "IT-TAB-001" } });
+
+  if (macbook && projector && ipad) {
+    // Create demo transactions
+    await Promise.all([
+      prisma.transaction.upsert({
+        where: { id: "tx-001" },
+        update: {},
+        create: {
+          id: "tx-001",
+          userId: demoUser.id,
+          equipmentId: macbook.id,
+          startDate: new Date("2026-03-10"),
+          endDate: new Date("2026-03-15"),
+          reason: "ใช้สำหรับการประชุมลูกค้า",
+          status: TransactionStatus.PENDING
+        }
+      }),
+      prisma.transaction.upsert({
+        where: { id: "tx-002" },
+        update: {},
+        create: {
+          id: "tx-002",
+          userId: demoUser.id,
+          equipmentId: projector.id,
+          startDate: new Date("2026-03-05"),
+          endDate: new Date("2026-03-08"),
+          reason: "ใช้สำหรับงานนำเสนอ",
+          status: TransactionStatus.APPROVED
+        }
+      }),
+      prisma.transaction.upsert({
+        where: { id: "tx-003" },
+        update: {},
+        create: {
+          id: "tx-003",
+          userId: demoUser.id,
+          equipmentId: ipad.id,
+          startDate: new Date("2026-02-20"),
+          endDate: new Date("2026-02-25"),
+          reason: "ใช้สำหรับอบรมลูกค้า",
+          status: TransactionStatus.RETURNED,
+          returnDate: new Date("2026-02-25")
+        }
+      }),
+      prisma.transaction.upsert({
+        where: { id: "tx-004" },
+        update: {},
+        create: {
+          id: "tx-004",
+          userId: demoUser.id,
+          equipmentId: macbook.id,
+          startDate: new Date("2026-01-15"),
+          endDate: new Date("2026-01-20"),
+          reason: "ขอยืมเพื่อทำงานนอก офис",
+          status: TransactionStatus.REJECTED,
+          adminRemark: "อุปกรณ์ถูกยืมไปแล้วในช่วงเวลาดังกล่าว"
+        }
+      })
+    ]);
+
+    // Decrease available stock for approved transaction
+    await prisma.equipment.update({
+      where: { id: projector.id },
+      data: { availableStock: { decrement: 1 } }
+    });
+
+    console.log("Created demo transactions: 4 transactions");
+  }
+
   console.log("\n✅ Seed completed successfully!");
 }
 

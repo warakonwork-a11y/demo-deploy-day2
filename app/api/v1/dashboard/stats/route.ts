@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getDashboardStats } from "@/lib/inventory";
 import { assertAdmin, getCurrentUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     assertAdmin(user);
 
     const stats = await getDashboardStats();

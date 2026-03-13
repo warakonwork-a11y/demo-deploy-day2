@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RoleSwitcher } from "@/components/role-switcher";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,8 @@ export function MainLayout({ children }: MainLayoutProps) {
               </span>
             </div>
           </Link>
-          <nav className="flex items-center gap-1 text-sm">
+          <nav className="flex items-center gap-3 text-sm">
+            <RoleSwitcher />
             <Link 
               href="/" 
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50/50 transition-all font-medium"

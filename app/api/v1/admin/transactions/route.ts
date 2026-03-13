@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertAdmin, getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const user = await getCurrentUser();
+export async function GET(request: NextRequest) {
+  const user = await getCurrentUser(request);
   assertAdmin(user);
 
   const transactions = await prisma.transaction.findMany({
@@ -26,7 +26,8 @@ export async function GET() {
       user_name: t.user.name,
       start_date: t.startDate,
       end_date: t.endDate,
-      status: t.status
+      status: t.status,
+      reason: t.reason
     }))
   );
 }

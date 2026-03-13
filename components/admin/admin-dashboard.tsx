@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -24,42 +24,75 @@ interface TransactionRow {
   start_date: string;
   end_date: string;
   status: string;
+  reason?: string;
+}
+
+function getDemoRole(): string {
+  if (typeof window === "undefined") return "USER";
+  return localStorage.getItem("demo-role") || "USER";
 }
 
 export function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [role, setRole] = useState<string>("USER");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  useEffect(() => {
-    void fetch("/api/v1/dashboard/stats", {
+  const fetchData = useCallback(() => {
+    const currentRole = getDemoRole();
+    setRole(currentRole);
+
+    // Only fetch stats for ADMIN
+    if (currentRole === "ADMIN") {
+      void fetch("/api/v1/dashboard/stats", {
+        headers: {
+          "x-demo-role": currentRole
+        }
+      })
+        .then((res) => res.json())
+        .then((data: unknown) => {
+          const statsData = data as DashboardStats;
+          if (statsData && "total_items" in statsData) setStats(statsData);
+        })
+        .catch(() => {
+          setStats(null);
+        });
+    }
+
+    // Fetch transactions based on role
+    const transactionsUrl = currentRole === "ADMIN" 
+      ? "/api/v1/admin/transactions" 
+      : "/api/v1/my-transactions";
+    
+    void fetch(transactionsUrl, {
       headers: {
-        "x-demo-role": "ADMIN"
+        "x-demo-role": currentRole
       }
     })
       .then((res) => res.json())
-      .then((data: DashboardStats) => setStats(data))
-      .catch(() => {
-        setStats(null);
-      });
-
-    void fetch("/api/v1/admin/transactions", {
-      headers: {
-        "x-demo-role": "ADMIN"
-      }
-    })
-      .then((res) => res.json())
-      .then((data: TransactionRow[]) => setTransactions(data))
+      .then((data: unknown) => {
+        if (Array.isArray(data)) setTransactions(data as TransactionRow[]);
+      })
       .catch(() => {
         setTransactions([]);
       });
   }, []);
 
+  useEffect(() => {
+    fetchData();
+
+    const handleRoleChange = () => fetchData();
+    window.addEventListener("role-change", handleRoleChange);
+    return () => window.removeEventListener("role-change", handleRoleChange);
+  }, [fetchData]);
+
   const handleStatusChange = async (id: string, status: "APPROVED" | "REJECTED" | "RETURNED") => {
+    const currentRole = getDemoRole();
     await fetch(`/api/v1/admin/transactions/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "x-demo-role": "ADMIN"
+        "x-demo-role": currentRole
       },
       body: JSON.stringify({ status })
     });
@@ -87,6 +120,124 @@ export function AdminDashboard() {
     }
   };
 
+  const filteredTransactions = statusFilter === "all" 
+    ? transactions 
+    : transactions.filter(t => t.status === statusFilter);
+
+  // USER Dashboard View
+  if (role === "USER") {
+    return (
+      <section className="space-y-6">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold text-slate-800">
+            ภาพรวมการยืมอุปกรณ์
+          </h1>
+          <p className="text-slate-500 max-w-2xl">
+            ติดตามสถานะการยืมอุปกรณ์ของคุณ
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="relative overflow-hidden border-0 shadow-lg shadow-blue-500/10">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-10"></div>
+            <CardContent className="relative p-6">
+              <p className="text-sm font-medium text-slate-500">ยืมทั้งหมด</p>
+              <p className="text-3xl font-bold text-slate-800 mt-1">{transactions.length}</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="relative overflow-hidden border-0 shadow-lg shadow-amber-500/10">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-600 opacity-10"></div>
+            <CardContent className="relative p-6">
+              <p className="text-sm font-medium text-slate-500">รออนุมัติ</p>
+              <p className="text-3xl font-bold text-slate-800 mt-1">
+                {transactions.filter(t => t.status === "PENDING").length}
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="relative overflow-hidden border-0 shadow-lg shadow-emerald-500/10">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-emerald-600 opacity-10"></div>
+            <CardContent className="relative p-6">
+              <p className="text-sm font-medium text-slate-500">อนุมัติแล้ว</p>
+              <p className="text-3xl font-bold text-slate-800 mt-1">
+                {transactions.filter(t => t.status === "APPROVED" || t.status === "BORROWING").length}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="border-0 shadow-lg shadow-slate-200/60">
+          <CardHeader className="border-b border-slate-100 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg text-slate-800">ประวัติการยืมของฉัน</CardTitle>
+                <CardDescription className="text-slate-500">
+                  แสดงประวัติการยืมและสถานะล่าสุด
+                </CardDescription>
+              </div>
+              <select 
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="flex h-10 w-[180px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm"
+              >
+                <option value="all">ทุกสถานะ</option>
+                <option value="PENDING">รออนุมัติ</option>
+                <option value="APPROVED">อนุมัติแล้ว</option>
+                <option value="BORROWING">กำลังยืม</option>
+                <option value="RETURNED">คืนแล้ว</option>
+                <option value="REJECTED">ถูกปฏิเสธ</option>
+                <option value="OVERDUE">เลยกำหนด</option>
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {filteredTransactions.length > 0 ? (
+              <div className="rounded-xl border border-slate-200 overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead className="font-semibold text-slate-700">อุปกรณ์</TableHead>
+                      <TableHead className="font-semibold text-slate-700">ช่วงวันที่</TableHead>
+                      <TableHead className="font-semibold text-slate-700">เหตุผล</TableHead>
+                      <TableHead className="font-semibold text-slate-700">สถานะ</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="py-3 font-medium text-slate-800">{t.equipment_name}</TableCell>
+                        <TableCell className="py-3 text-slate-600">
+                          {new Date(t.start_date).toLocaleDateString("th-TH")} -{" "}
+                          {new Date(t.end_date).toLocaleDateString("th-TH")}
+                        </TableCell>
+                        <TableCell className="py-3 text-slate-600 max-w-xs truncate">{t.reason}</TableCell>
+                        <TableCell className="py-3">
+                          {getStatusBadge(t.status)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <p className="text-slate-600 font-medium">ยังไม่มีประวัติการยืม</p>
+                <p className="text-sm text-slate-400 mt-1">เริ่มยืมอุปกรณ์ได้เลยจากหน้าหลัก</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
+
+  // ADMIN Dashboard View
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -99,7 +250,7 @@ export function AdminDashboard() {
       </div>
       
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="overflow-hidden border-0 shadow-lg shadow-blue-500/10">
+        <Card className="relative overflow-hidden border-0 shadow-lg shadow-blue-500/10">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-10"></div>
           <CardContent className="relative p-6">
             <div className="flex items-center justify-between">
@@ -117,7 +268,7 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
         
-        <Card className="overflow-hidden border-0 shadow-lg shadow-emerald-500/10">
+        <Card className="relative overflow-hidden border-0 shadow-lg shadow-emerald-500/10">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-emerald-600 opacity-10"></div>
           <CardContent className="relative p-6">
             <div className="flex items-center justify-between">
@@ -135,7 +286,7 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
         
-        <Card className="overflow-hidden border-0 shadow-lg shadow-red-500/10">
+        <Card className="relative overflow-hidden border-0 shadow-lg shadow-red-500/10">
           <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-600 opacity-10"></div>
           <CardContent className="relative p-6">
             <div className="flex items-center justify-between">
@@ -220,10 +371,27 @@ export function AdminDashboard() {
       
       <Card className="border-0 shadow-lg shadow-slate-200/60">
         <CardHeader className="border-b border-slate-100 pb-4">
-          <CardTitle className="text-lg text-slate-800">จัดการคำขอยืม</CardTitle>
-          <CardDescription className="text-slate-500">
-            อนุมัติหรือปฏิเสธคำขอยืมอุปกรณ์
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg text-slate-800">จัดการคำขอยืม</CardTitle>
+              <CardDescription className="text-slate-500">
+                อนุมัติหรือปฏิเสธคำขอยืมอุปกรณ์
+              </CardDescription>
+            </div>
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="flex h-10 w-[180px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm"
+            >
+              <option value="all">ทุกสถานะ</option>
+              <option value="PENDING">รออนุมัติ</option>
+              <option value="APPROVED">อนุมัติแล้ว</option>
+              <option value="BORROWING">กำลังยืม</option>
+              <option value="RETURNED">คืนแล้ว</option>
+              <option value="REJECTED">ถูกปฏิเสธ</option>
+              <option value="OVERDUE">เลยกำหนด</option>
+            </select>
+          </div>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="rounded-xl border border-slate-200 overflow-hidden">
@@ -238,7 +406,7 @@ export function AdminDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((t) => (
+                {filteredTransactions.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell className="py-3 font-medium text-slate-800">{t.equipment_name}</TableCell>
                     <TableCell className="py-3 text-slate-600">{t.user_name}</TableCell>

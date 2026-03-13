@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const params = await context.params;
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     assertAdmin(user);
 
     const body = await request.json();
