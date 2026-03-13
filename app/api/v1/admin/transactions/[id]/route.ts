@@ -4,17 +4,11 @@ import { adminUpdateTransactionSchema } from "@/lib/validations/borrow-schema";
 import { updateTransactionStatusWithStock } from "@/lib/inventory";
 import { assertAdmin, getCurrentUser } from "@/lib/auth";
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
+export const dynamic = "force-dynamic";
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: RouteParams
-) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
     const user = await getCurrentUser();
     assertAdmin(user);
 

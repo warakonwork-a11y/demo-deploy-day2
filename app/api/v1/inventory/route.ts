@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         image_url: item.imageUrl
       }))
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to load inventory" },
       { status: 500 }

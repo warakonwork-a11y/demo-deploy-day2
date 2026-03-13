@@ -29,7 +29,7 @@ export async function GET() {
         status: t.status
       }))
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to load transactions" },
       { status: 500 }

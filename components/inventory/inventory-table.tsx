@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -83,11 +84,12 @@ export function InventoryTable({ filters }: InventoryTableProps) {
                   <TableCell className="py-3">
                     <div className="flex items-center gap-3">
                       {item.image_url ? (
-                        <div className="h-10 w-10 overflow-hidden rounded-lg bg-slate-100">
-                          <img
+                        <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-slate-100">
+                          <Image
                             src={item.image_url}
                             alt={item.name}
-                            className="h-full w-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         </div>
                       ) : (
