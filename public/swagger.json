@@ -1,0 +1,165 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Equipment Borrowing System API",
+    "version": "1.0.0",
+    "description": "API for Office Equipment Borrowing System"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "DemoRoleHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-demo-role",
+        "description": "Demo role header (USER or ADMIN)"
+      }
+    }
+  },
+  "security": [
+    {
+      "DemoRoleHeader": []
+    }
+  ],
+  "paths": {
+    "/api/v1/inventory": {
+      "get": {
+        "summary": "Get inventory items",
+        "tags": ["Inventory"],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Category ID",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search by name or SKU",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/v1/inventory-categories": {
+      "get": {
+        "summary": "Get all categories",
+        "tags": ["Inventory"],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/v1/borrow": {
+      "post": {
+        "summary": "Create borrow request",
+        "tags": ["Borrow"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["equipment_id", "start_date", "end_date", "reason"],
+                "properties": {
+                  "equipment_id": { "type": "string" },
+                  "start_date": { "type": "string", "format": "date-time" },
+                  "end_date": { "type": "string", "format": "date-time" },
+                  "reason": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "400": { "description": "Bad request" }
+        }
+      }
+    },
+    "/api/v1/my-transactions": {
+      "get": {
+        "summary": "Get user's transactions",
+        "tags": ["Transactions"],
+        "security": [{ "DemoRoleHeader": [] }],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/api/v1/admin/transactions": {
+      "get": {
+        "summary": "Get all transactions (Admin)",
+        "tags": ["Admin"],
+        "security": [{ "DemoRoleHeader": [] }],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/api/v1/admin/transactions/{id}": {
+      "patch": {
+        "summary": "Update transaction status (Admin)",
+        "tags": ["Admin"],
+        "security": [{ "DemoRoleHeader": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["APPROVED", "REJECTED", "RETURNED"]
+                  },
+                  "remarks": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated" }
+        }
+      }
+    },
+    "/api/v1/dashboard/stats": {
+      "get": {
+        "summary": "Get dashboard statistics (Admin)",
+        "tags": ["Admin"],
+        "security": [{ "DemoRoleHeader": [] }],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    }
+  }
+}
